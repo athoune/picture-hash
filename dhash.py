@@ -1,7 +1,7 @@
 import numpy as np
-from skimage.data import imread
 from skimage.transform import resize
 from skimage.color import rgb2grey
+
 
 """
 http://www.hackerfactor.com/blog/?/archives/529-Kind-of-Like-That.html
@@ -53,7 +53,17 @@ def cardinality_str(number):
 def cardinality_dtype(number):
     return sum(HEIGHTBITS[ord(a)] for a in number.data)
 
+
+def ncardinality(array):
+    c = np.zeros([len(array)], dtype=int)
+    for n in range(array.dtype.itemsize * 8):
+        c += array >> n & 1
+    return c
+
+
+
 if __name__ == "__main__":
+    from skimage.data import imread
     p = imread('Alyson_Hannigan_200512.jpg')
     d = dhash(p)
     print d

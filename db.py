@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import numpy as np
-from dhash import cardinality_dtype, dhash, ncardinality
+from dhash import dhash, ncardinality
 from skimage.data import imread
 
 import os
-import sys
 
 
 def list_folder(path):
+    "Yield all path from a folder"
     for root, dirs, files in os.walk(path):
         for name in files:
             if name[0] == ".":
@@ -17,6 +17,7 @@ def list_folder(path):
 
 
 class HashDB(object):
+    "Abstract class for indexing pictures and find similarity"
 
     def values(self):
         raise NotImplementedError()
@@ -54,6 +55,7 @@ class HashDB(object):
 
 
 class FlatDB(HashDB):
+    "Flat storage implementation."
 
     def __init__(self, path):
         self.path = path
@@ -72,13 +74,14 @@ class FlatDB(HashDB):
         return names, hashes
 
 
+if __name__ == '__main__':
+    import sys
 
+    db = FlatDB('test')
+    #db.index(list_folder(sys.argv[1]))
 
-db = FlatDB('test')
-#db.index(list_folder(sys.argv[1]))
-
-for a in db.find_similarity():
-    print a
+    for a in db.find_similarity():
+        print a
 
 """
 for i, h1 in enumerate(hashes):

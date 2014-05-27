@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-import plyvel
 import numpy as np
-from dhash import cardinality_dtype, dhash
+from dhash import cardinality_dtype, dhash, ncardinality
 from skimage.data import imread
-from cStringIO import StringIO
 
 import os
 import sys
@@ -18,9 +16,16 @@ def list_folder(path):
             yield "%s/%s" % (root, name)
 
 
-def index(db, files):
-    i = 0
-    with db.write_batch() as wb:
+class HashDB(object):
+
+    def values(self):
+        raise NotImplementedError()
+
+    def index(self):
+        raise NotImplementedError()
+
+    def hash(self, files):
+        i = 0
         for path in files:
             i += 1
             try:
@@ -29,31 +34,57 @@ def index(db, files):
                 print "oups", e
                 continue
             d = dhash(p)
-            wb.put(path, d.tostring())
             if i == 100:
                 print('#')
                 i = 0
+            yield path, d
+
+    def find_similarity(self):
+        names, hashes = self.values()
+
+        size = len(hashes)
+        ref = np.zeros([size], dtype=np.int64)
+        l = np.arange(size)
+        for i in range(1, size):
+            ref[:] = hashes[i - 1]
+            c = ncardinality(hashes[i:] ^ ref[i:])
+            mask = c <= 4
+            if mask.any():
+                yield i, c[mask], l[mask]
 
 
-def double(db):
-    names = []
-    buff = StringIO()
-    for path, h in db.iterator():
-        names.append(path)
-        buff.write(h)
-    buff.seek(0)
-    hashes = np.fromstring(buff.read(), dtype=np.int64)
-    return names, hashes
+class FlatDB(HashDB):
+
+    def __init__(self, path):
+        self.path = path
+
+    def index(self, files):
+        names = open("%s.names" % self.path, 'w')
+        hashes = open("%s.hashes" % self.path, 'w')
+        for path, dhash in self.hash(files):
+            names.write(path)
+            names.write(':')
+            hashes.write(dhash.tostring())
+
+    def values(self):
+        names = open("%s.names" % self.path, 'r').read().split(':')[:-1]
+        hashes = np.fromfile("%s.hashes" % self.path, dtype=np.int64)
+        return names, hashes
 
 
-db = plyvel.DB('/tmp/testdb/', create_if_missing=True)
-#index(db, list_folder(sys.argv[1]))
-names, hashes = double(db)
 
+
+db = FlatDB('test')
+#db.index(list_folder(sys.argv[1]))
+
+for a in db.find_similarity():
+    print a
+
+"""
 for i, h1 in enumerate(hashes):
-    for j, h2 in enumerate(hashes):
-        if i == j:
-            continue
+    for j in range(i + 1, size):
+        h2 = hashes[j]
         c = cardinality_dtype(h1 ^ h2)
         if c <= 4:
-            print c, names[i], names[j]
+           print c, names[i], names[j]
+"""

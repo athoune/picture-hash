@@ -40,13 +40,13 @@ class HashDB(object):
                 i = 0
             yield path, d
 
-    def find_similarity(self):
+    def find_similarity(self, start=0, end=-1):
         names, hashes = self.values()
 
         size = len(hashes)
         ref = np.zeros([size], dtype=np.int64)
         l = np.arange(size)
-        for i in range(1, size):
+        for i in range(1, size)[start:end]:
             ref[:] = hashes[i - 1]
             c = ncardinality(hashes[i:] ^ ref[i:])
             mask = c <= 4
@@ -59,6 +59,23 @@ class FlatDB(HashDB):
 
     def __init__(self, path):
         self.path = path
+        self._names = None
+        self._hashes = None
+
+    def __len__(self):
+        return len(self.names)
+
+    @property
+    def names(self):
+        if self._names is None:
+            self._names = open("%s.names" % self.path, 'r').read().split(':')[:-1]
+        return self._names
+
+    @property
+    def hashes(self):
+        if self._hashes is None:
+            self._hashes = np.fromfile("%s.hashes" % self.path, dtype=np.int64)
+        return self._hashes
 
     def index(self, files):
         names = open("%s.names" % self.path, 'w')
@@ -69,19 +86,18 @@ class FlatDB(HashDB):
             hashes.write(dhash.tostring())
 
     def values(self):
-        names = open("%s.names" % self.path, 'r').read().split(':')[:-1]
-        hashes = np.fromfile("%s.hashes" % self.path, dtype=np.int64)
-        return names, hashes
+        return self.names, self.hashes
 
 
 if __name__ == '__main__':
     import sys
 
     db = FlatDB('test')
-    #db.index(list_folder(sys.argv[1]))
-
-    for a in db.find_similarity():
-        print a
+    if len(sys.argv) > 1:
+        db.index(list_folder(sys.argv[1]))
+    else:
+        for a in db.find_similarity():
+            print a
 
 """
 for i, h1 in enumerate(hashes):

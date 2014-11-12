@@ -1,0 +1,7 @@
+numpy
+scipy
+six
+scikit-image
+# Luigi
+luigi
+plyvel

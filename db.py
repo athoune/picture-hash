@@ -13,7 +13,9 @@ def list_folder(path):
         for name in files:
             if name[0] == ".":
                 continue
-            yield "%s/%s" % (root, name)
+            _, ext = os.path.splitext(name)
+            if ext in ['.jpg', '.jpeg', '.png']:
+                yield "%s/%s" % (root, name)
 
 
 class HashDB(object):

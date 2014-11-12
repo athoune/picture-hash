@@ -16,6 +16,7 @@ def chunking(l, size):
         yield l[int(i):int(n)]
         i = n
 
+
 class ImageIndex(luigi.Task):
 
     shards = luigi.IntParameter()
@@ -50,8 +51,8 @@ class Images(luigi.Task):
             wb.write()
         db.close()
 
-    def complete(self):
-        return False
+    def output(self):
+        return luigi.LocalTarget("data/db_%i" % self.shard)
 
 
 class ImagesList(luigi.Task):

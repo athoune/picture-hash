@@ -2,13 +2,11 @@
 
 import luigi
 
-from db import list_folder
-from dhash import dhash, ncardinality
-from skimage.data import imread
-import plyvel
+from db import list_folder, FlatDB
 
 
 def chunking(l, size):
+    "Split a list in chunks"
     i = 0
     chunk = len(l) / float(size)
     for a in range(size):
@@ -37,22 +35,19 @@ class Images(luigi.Task):
     def requires(self):
         return ImagesList(shards=self.shards)
 
-    def run(self):
-        db = plyvel.DB('data/db_%i' % self.shard, create_if_missing=True)
+    def _images(self):
         with self.requires().output()[self.shard].open('r') as images:
-            wb = db.write_batch()
             for i, image in enumerate(images.readlines()):
                 if image[-1] == "\n":
                     image = image[:-1]
-                p = imread(image)
-                d = dhash(p)
-                wb.put(image, d.tostring())
-                # Maybe some modulo to write the batch?
-            wb.write()
-        db.close()
+                yield image
+
+    def run(self):
+        db = FlatDB('data/db_%i' % self.shard)
+        db.index(self._images())
 
     def output(self):
-        return luigi.LocalTarget("data/db_%i" % self.shard)
+        return luigi.LocalTarget("data/db_%i.hashes" % self.shard)
 
 
 class ImagesList(luigi.Task):
@@ -70,14 +65,6 @@ class ImagesList(luigi.Task):
             with outs[i].open('w') as f:
                 f.write("\n".join(imgs))
 
-
-#class RunAll(luigi.Task):
-
-    #def requires(self):
-        #return ImageIndex(shards=4)
-
-    #def complete(self):
-        #return False
 
 if __name__ == '__main__':
 

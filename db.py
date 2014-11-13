@@ -28,19 +28,13 @@ class HashDB(object):
         raise NotImplementedError()
 
     def hash(self, files):
-        i = 0
         for path in files:
-            i += 1
             try:
                 p = imread(path)
             except IOError as e:
                 print "oups", e
                 continue
-            d = dhash(p)
-            if i == 100:
-                print('#')
-                i = 0
-            yield path, d
+            yield path, dhash(p)
 
     def find_similarity(self, start=0, end=-1):
         names, hashes = self.values()

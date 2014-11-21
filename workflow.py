@@ -7,12 +7,8 @@ from db import list_folder, FlatDB
 
 def chunking(l, size):
     "Split a list in chunks"
-    i = 0
     chunk = len(l) / float(size)
-    for a in range(size):
-        n = i + chunk
-        yield l[int(i):int(n)]
-        i = n
+    return (l[int(a*chunk):int((a+1)*chunk)] for a in xrange(size))
 
 
 class ImageIndex(luigi.Task):
@@ -56,7 +52,7 @@ class ImagesList(luigi.Task):
 
     def output(self):
         return [luigi.LocalTarget("data/images_%i.txt" % a)
-                for a in range(self.shards)]
+                for a in xrange(self.shards)]
 
     def run(self):
         images = list(list_folder('images'))
